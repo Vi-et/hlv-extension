@@ -1,6 +1,7 @@
+
 chrome.runtime.onMessage.addListener((request) => {
 
-    let removeButton, drawing, drawFunction
+    let removeButton, drawFunction
     // window.alert(request.screenShotUrl)
     const screenShotUrl = request.screenShotUrl
 
@@ -12,33 +13,53 @@ chrome.runtime.onMessage.addListener((request) => {
     }else{
 
         // create board and append screenshot
-        board = d3.select("body").append("div")
+        const board = d3.select("body").append("div")
         .attr("id", "zen-board")
 
         // create screenshot container
-        const   screenShotContainer = board.append("div")
+        const screenShotContainer = board.append("div")
         .attr("id", "screenshot-container")
-
-        // append screenshot
-        const screenShot = screenShotContainer.append("img")
-        .attr("src", screenShotUrl)
-        .attr("id", "screenshot")
 
         // create svg container
         const screenShotSvg = screenShotContainer.append("svg")
         .attr("id", "screenshot-svg")
+        .attr("width", screenShotContainer.style("width"))
+        .attr("height", screenShotContainer.style("height"))
 
+
+        // append screenshot to svg
+        const defs = screenShotSvg.append("defs")
+
+        defs.append("pattern")
+        .attr("id", "backgroundPattern")
+        .attr("width", "100%")
+        .attr("height", "100%")
+        .append("image")
+        .attr("xlink:href", screenShotUrl)
+        .attr("patternUnits", "userSpaceOnUse")
+        .attr("patternContentUnits", "objectBoundingBox") 
+        .attr("width", screenShotSvg.attr("width"))
+        .attr("height", screenShotSvg.attr("height"));
+
+        // add rect element to create 
+        screenShotSvg.append("rect")
+        .attr("width", "100%")
+        .attr("height", "100%")
+        .style("fill", "url(#backgroundPattern)");
+        
         // add remove element button
-        screenShotSvg.on("contextmenu", () => {
-            event.preventDefault()
-            const {x, y} = d3.pointer(event)
+        // screenShotSvg.on("contextmenu", () => {
+        //     event.preventDefault()
+        //     const [x, y] = d3.pointer(event)
 
-            if(removeButton){
-                removeButton.remove()
-            }
+        //     if(event.target.id === "screenshot-svg") return
 
-            removeButton = createRemoveButton(event.target, x, y, removeButton, board.attr("id"))
-        })
+        //     if(removeButton){
+        //         removeButton.remove()
+        //     }
+
+        //     removeButton = createRemoveButton(event.target, x, y, removeButton, board.attr("id"))
+        // })
 
         // add close button
         const closeButton = board.append("button").text("Close").on("click", () => {
@@ -52,9 +73,13 @@ chrome.runtime.onMessage.addListener((request) => {
             "circle": drawCircle,
             "polygon": drawPolygon,
             "line": drawLine,
+            "selection": drawSelection,
+            "curve": drawCurveNatural,
+            "rectangle": drawRectangle,
+            "draw": drawFreeHand,
+            "ellipseArea": drawEllipseArea,
+            "drawlineBendable": drawLineBendable
         }
-
-
 
         Object.keys(menuItemMap).forEach((item) => {
 
@@ -77,15 +102,30 @@ chrome.runtime.onMessage.addListener((request) => {
 
         //create download button
         const downloadButton = board.append("button").attr("id","zen-download-button").text("Download").on("click", () => {
-            printToFile("screenshot-container", "zen-download-button")
-        })
-
-
-
-
-        
-
-
+            const svg = document.getElementById("screenshot-svg")
     
+            const serializer = new XMLSerializer();
+            const source = serializer.serializeToString(svg);
+            const canvas = document.createElement('canvas');
+
+            canvas.width = svg.width.baseVal.value //
+            canvas.height = svg.height.baseVal.value
+
+            const ctx = canvas.getContext('2d');
+            const domURL = window.URL || window.webkitURL || window;
+            const img = new Image();
+            const svgBlob = new Blob([source], {type: 'image/svg+xml;charset=utf-8'});
+            const url = domURL.createObjectURL(svgBlob);
+            img.onload = function () {
+                ctx.drawImage(img, 0, 0);
+                const imgURI = canvas.toDataURL('image/png')
+                const a = document.createElement('a');
+                a.href = imgURI;
+                a.download = 'screenshot.png';
+                a.click();
+            };
+            img.src = url;                 
+
+        })
     }
 })

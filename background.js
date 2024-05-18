@@ -17,7 +17,7 @@ chrome.runtime.onInstalled.addListener( function() {
 
                 await chrome.scripting.executeScript({
                     target: {tabId: activeTab.id},
-                    files: ['js/d3.v7.js', 'js/d3Utilities.js', 'js/utilities.js','js/html2canvas.js']
+                    files: ['js/d3.v7.js', 'js/d3Utilities.js', 'js/utilities.js','js/html2canvas.js','js/canvg.js']
                 })
                 
                 chrome.tabs.sendMessage(activeTab.id, {"screenShotUrl": screenshotUrl});

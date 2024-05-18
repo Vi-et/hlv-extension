@@ -20,18 +20,46 @@ function convertPolygonPointsTextToArray(pointsText){
     return newPoints
 }
 
-function printToFile(divId, downloadButtonId) {
+function extractStartAndEndPointFromCurveLine(d) {
+    // Split the path data into commands
+    const commands = d.split(/(?=[MLC])/);
+    
+    // Extract the start point from the first command (assuming it starts with M)
+    const startPoint = commands[0].slice(1).split(',').map(Number);
 
-    var div = document.getElementById(divId);
+    // Initialize endPoint array
+    let endPoint = [];
 
-    html2canvas(div, {
-        onrendered: function (canvas) {
-            var imageData = canvas.toDataURL("image/jpg");
-            //create your own dialog with warning before saving file
-            //beforeDownloadReadMessage();
-            //Then download file
-            var newData = imageData.replace(/^data:image\/jpg/, "data:application/octet-stream");
-            d3.select("#" + downloadButtonId).attr("download","image.jpg").attr("href", newData);
-        }
-    });
+    // Check the last command to determine the type and extract accordingly
+    const lastCommand = commands[commands.length - 1];
+    const commandType = lastCommand[0];
+    const points = lastCommand.slice(1).split(',');
+
+    switch (commandType) {
+        case 'L':
+            // If the last command is L, the end point is directly the coordinates after L
+            endPoint = points.map(Number);
+            break;
+        case 'C':
+            // If the last command is C, the end point is the last pair of coordinates
+            endPoint = points.slice(-2).map(Number);
+            break;
+        default:
+            // If another command ends the path, handle accordingly or return undefined
+            console.log("Unhandled command type for end point extraction.");
+            break;
+    }
+
+    return {
+        startPoint: startPoint,
+        endPoint: endPoint
+    };
+}
+
+function getTransformValues(element){
+    let transform = element.getAttribute('transform')
+    let values = transform.split("(")[1].split(")")[0].split(",")
+    let translateX = parseFloat(values[0])
+    let translateY = parseFloat(values[1])
+    return [translateX, translateY]
 }
