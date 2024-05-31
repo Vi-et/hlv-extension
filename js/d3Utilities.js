@@ -267,7 +267,12 @@ function drawLine(svg) {
                 let [x2, y2] = d3.pointer(event)
 
                 // create the line
-                line = svg.append("g").append("line")
+                let g = svg.append("g").call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended)
+                )
+                line = g.append("line")
                     .attr('x1', x1)
                     .attr('y1', y1)
                     .attr('x2', x2)
@@ -276,11 +281,7 @@ function drawLine(svg) {
                     .attr('stroke-width', 6)
                     .attr("marker-end", "url(#triangle)")
                     .style("cursor", "pointer")
-                    .call(d3.drag()
-                        .on("start", dragstarted)
-                        .on("drag", dragged)
-                        .on("end", dragended)
-                    )
+
 
                 // set variables to default
                 drawing = false
@@ -312,6 +313,7 @@ function drawLine(svg) {
         transformX += event.dx
         transformY += event.dy
         d3.select(this).attr("transform", `translate(${transformX}, ${transformY})`)
+
     }
 
     function dragended(event) {
@@ -324,8 +326,8 @@ function drawSelection(svg) {
     let g, startX, startY, endX, endY, 
         drawing = false,
         selecting = false,
-        transformX = 0,
-        transformY = 0
+        boxTransformX = 0,
+        boxTransformY = 0
 
 
 
@@ -406,6 +408,7 @@ function drawSelection(svg) {
                     .on("drag", dragged)
                     .on("end", dragended)
                 )
+                .attr('id', 'selection-box')
             drawing = false, selecting = true
 
         }
@@ -416,14 +419,23 @@ function drawSelection(svg) {
         allElements.each(function(d, i) {
             let element = d3.select(this).node()
             let elementBox = element.getBBox()
+            let transform = element.getAttribute('transform')
+            let translateX = 0, translateY = 0
+            if(transform){
+                let values = transform.split("(")[1].split(")")[0].split(",")
+                translateX = parseFloat(values[0])
+                translateY = parseFloat(values[1])
+            }
+
+            console.log(translateX, translateY)
 
             let selected = false
 
 
-            if (elementBox.x > Math.min(startX, endX) &&
-                elementBox.x < Math.min(startX, endX) + Math.abs(endX - startX) &&
-                elementBox.y > Math.min(startY, endY) &&
-                elementBox.y < Math.min(startY, endY) + Math.abs(endY - startY)) {
+            if (elementBox.x + translateX > Math.min(startX, endX) &&
+                elementBox.x + translateX < Math.min(startX, endX) + Math.abs(endX - startX) &&
+                elementBox.y + translateY > Math.min(startY, endY) &&
+                elementBox.y + translateY < Math.min(startY, endY) + Math.abs(endY - startY)) {
                 selected = true
             }
 
@@ -440,9 +452,16 @@ function drawSelection(svg) {
 
     function dragstarted(event) {
     
-        let selectedList = d3.selectAll('.selected')
+        let selectedList = d3.selectAll('.selected');   
         selectedList.each(function(d, i) {
             let element = d3.select(this)
+            let transformX = 0, transformY = 0
+            let transform = element.attr('transform')
+            if (transform) {
+                let values = transform.split("(")[1].split(")")[0].split(",")
+                transformX = parseFloat(values[0])
+                transformY = parseFloat(values[1])
+            }
             element.attr("transform", `translate(${transformX}, ${transformY})`)
 
         })
@@ -451,19 +470,21 @@ function drawSelection(svg) {
 
     function dragged(event) {
         let selectedList = d3.selectAll('.selected')
-
-        transformX += event.dx
-        transformY += event.dy
-        selectedList.attr("transform", `translate(${transformX}, ${transformY})`)
+        
+        boxTransformX += event.dx
+        boxTransformY += event.dy
+        console.log(boxTransformX, boxTransformY)
+        selectedList.attr("transform", `translate(${boxTransformX}, ${boxTransformY})`)
     }
 
     function dragended(event) {
         let selectedList = d3.selectAll('.selected')
         selectedList.each(function(d, i) {
             let element = d3.select(this)
-            element.attr("transform", `translate(${transformX}, ${transformY})`)
+            element.attr("transform", `translate(${boxTransformX}, ${boxTransformY})`)
         })
-        [transformX, transformY] = [0, 0]
+        return
+        
 
     }
 

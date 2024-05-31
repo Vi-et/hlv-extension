@@ -23,7 +23,7 @@
         "service_worker": "background.js"
     },
     "permissions":[
-        "contextMenus","activeTab","scripting","storage","tabs","webNavigation","webRequest","idle","downloads"
+        "contextMenus","activeTab","scripting"
     ],
     "content_scripts":[
         {
